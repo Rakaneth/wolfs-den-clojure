@@ -1,6 +1,7 @@
 (ns rakaneth.wolfsden.core
   (:gen-class)
   (:require [mikera.orculje.gui :as gui])
+  (:require [rakaneth.wolfsden.screens :as scr])
   (:import [javax.swing JFrame JComponent KeyStroke])
   (:import [java.awt Font Color])
   (:import [java.awt.event KeyEvent])
@@ -25,37 +26,74 @@
      (.setCursorBlink jc false)
      jc)))
 
-(defn write-center [^JConsole jc y text]
-  (gui/draw jc (quot (- +screen-width+ (count text)) 2) y text))
 
 (defn redraw-screen [state]
   (let [^JConsole jc (:console state)
-        screens (:screens state)]
+        screens (:screen-stack state)]
+    (.setBackground jc (Color. 0 0 0))
+    (.clear jc)
     (doseq [screen screens]
       ((:on-render screen) jc (:game state)))))
-
-(defn new-title-screen []
-  {:on-render (fn [^JConsole jc game]
-                (write-center jc 20 "Wolf's Den: Clojure Edition")
-                (write-center jc 21 "By Rakaneth"))})
 
 (defn new-state []
   (let [state {:game {}
                :console (new-console)
                :frame (new-frame)
                :input nil
-               :event-handler nil
-               :screens (vector (new-title-screen))}]
+               :screen-stack (vector)}]
     state))
 
+(defn make-input-action [state k]
+  (fn []
+    (let [screens (:screen-stack state)
+          handler-fn (:on-input (last screens))]
+      (if handler-fn
+        (handler-fn k)
+        (println (str "Unhandled key " k " pressed."))))))
+
+(defn setup-input
+  [^JComponent comp state]
+  (doseq [k "abcdefghijklmnopqrstuvwxyz "]
+    (gui/add-input-binding comp (gui/keystroke k) (make-input-action state (str k))))
+  (doseq [k "ABCDEFGHIJKLMNOPQRSTUWXYZ"]
+    (gui/add-input-binding comp (gui/keystroke k) (make-input-action state (str k))))
+  (doseq [[^KeyEvent ke k] {KeyEvent/VK_NUMPAD4 "num-4"
+                            KeyEvent/VK_NUMPAD7 "num-7"
+                            KeyEvent/VK_NUMPAD8 "num-8"
+                            KeyEvent/VK_NUMPAD9 "num-9"
+                            KeyEvent/VK_NUMPAD6 "num-6"
+                            KeyEvent/VK_NUMPAD3 "num-3"
+                            KeyEvent/VK_NUMPAD2 "num-2"
+                            KeyEvent/VK_NUMPAD1 "num-1"
+                            KeyEvent/VK_1 "1"
+                            KeyEvent/VK_2 "2"
+                            KeyEvent/VK_3 "3"
+                            KeyEvent/VK_4 "4"
+                            KeyEvent/VK_5 "5"
+                            KeyEvent/VK_6 "6"
+                            KeyEvent/VK_7 "7"
+                            KeyEvent/VK_8 "8"
+                            KeyEvent/VK_9 "9"
+                            KeyEvent/VK_0 "0"
+                            KeyEvent/VK_ENTER "enter"}]
+    (gui/add-input-binding comp (gui/keystroke-from-keyevent ke) (make-input-action state (str k)))))
+
+(def s (atom (new-state)))
+
+(defn reset-game-state! [state]
+  (reset! state (new-state)))
+
 (defn main [state]
-  (let [^JFrame frame (:frame state)
-        ^JConsole jc (:console state)]
-    ;;(setup-input jc state)
+  (reset-game-state! state)
+  (scr/push-screen state (scr/new-title-screen))
+  (let [st @state
+        ^JConsole jc (:console st)
+        ^JFrame frame (:frame st)]
+    (setup-input jc st)
     (.add (.getContentPane frame) jc)
     (.pack frame)
     (.setVisible frame true)
-    (redraw-screen state)
+    (redraw-screen st)
     frame))
 
 (defn -main
