@@ -33,22 +33,22 @@
     (.setBackground jc (Color. 0 0 0))
     (.clear jc)
     (doseq [screen screens]
-      ((:on-render screen) jc (:game state)))))
+      ((:on-render screen) jc state))))
 
 (defn new-state []
   (let [state {:game {}
                :console (new-console)
                :frame (new-frame)
-               :input nil
+               :selected nil
                :screen-stack (vector)}]
     state))
 
 (defn make-input-action [state k]
   (fn []
-    (let [screens (:screen-stack state)
-          handler-fn (:on-input (last screens))]
-      (if handler-fn
-        (handler-fn k)
+    (let [screens (:screen-stack @state)
+          screen (last screens)
+          handler-fn (:on-input screen)]
+      (if-not (and handler-fn (handler-fn k))
         (println (str "Unhandled key " k " pressed."))))))
 
 (defn setup-input
@@ -89,7 +89,7 @@
   (let [st @state
         ^JConsole jc (:console st)
         ^JFrame frame (:frame st)]
-    (setup-input jc st)
+    (setup-input jc state)
     (.add (.getContentPane frame) jc)
     (.pack frame)
     (.setVisible frame true)

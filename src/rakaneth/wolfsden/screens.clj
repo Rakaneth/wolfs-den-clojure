@@ -58,8 +58,8 @@
 (defn write-center [^JConsole jc y text]
   (gui/draw jc (quot (- core/+screen-width+ (count text)) 2) y text))
 
-(defn new-menu [x y name caption options]
-  {:on-render (fn [^JConsole jc game]
+(defn new-menu [x y name caption select-fn options]
+  {:on-render (fn [^JConsole jc state]
                 (let [longest (utils/max-by (conj options caption) count)
                       long-len (count longest)
                       w (+ 2 long-len)
@@ -75,15 +75,16 @@
    :name (str name "-menu")})
 
 (defn new-title-screen []
-  {:on-render (fn [^JConsole jc game]
+  {:on-render (fn [^JConsole jc state]
                 (write-center jc 20 "Wolf's Den: Clojure Edition")
                 (write-center jc 21 "By Rakaneth"))
    :name "title"
    :on-input (fn [k]
                (case k
-                 "enter" (push-screen core/s (new-menu 50 20 
-                                                       "new-game" 
-                                                       "New Game" 
-                                                       ["New Game" "Continue"]))
-                 :else (println "Key " k " pressed on title screen"))
-               (core/redraw-screen @core/s))})
+                 "enter" (do (push-screen core/s (new-menu 50 20 
+                                                           "new-game" 
+                                                           "New Game" 
+                                                           ["New Game" "Continue"]))
+                             (core/redraw-screen @core/s)
+                             :handled)
+                 :else false))})
