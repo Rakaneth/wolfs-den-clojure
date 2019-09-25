@@ -1,7 +1,7 @@
 (ns rakaneth.wolfsden.screens
   (:require [mikera.orculje.gui :as gui])
-  (:require [rakaneth.wolfsden.core :as core])
   (:require [rakaneth.wolfsden.utils :as utils])
+  (:require [rakaneth.wolfsden.swatch :as swatch])
   (:import [mikera.gui JConsole])
   (:import [java.awt Color]))
 
@@ -56,11 +56,21 @@
            (fn [cur-state]
              (assoc cur-state :screen-stack (into [] (pop cur-stack)))))))
 
+(defn redraw-screen [state]
+  (let [st @state
+        ^JConsole jc (:console st)
+        screens (:screen-stack st)]
+    (.setBackground jc (swatch/color-by-name :black))
+    (.clear jc)
+    (doseq [screen screens]
+      ((:on-render screen) jc st))))
+
 (defn update-selected [state n]
   (println state)
   (swap! state
          (fn [cur-state]
-           (assoc cur-state :selected n))))
+           (assoc cur-state :selected n)))
+  (redraw-screen state))
 
 (defn write-center [^JConsole jc y text]
   (gui/draw jc (quot (- +screen-width+ (count text)) 2) y text))
@@ -77,9 +87,9 @@
                   (loop [row (inc y)
                          lst options]
                     (when-not (= row (+ y h))
-                      (if (= (:selected state) (- row y))
-                        (.setForeground jc (Color. 33 33 125))
-                        (.setForeground jc (Color. 255 255 255)))
+                      (if (= (:selected state) (- row y 1))
+                        (.setForeground jc (swatch/color-by-name :cyan))
+                        (.setForeground jc (swatch/color-by-name :white)))
                       (gui/draw jc (inc x) row (first lst))
                       (recur (inc row) (next lst))))))
    :on-enter (fn [^JConsole jc state] 
@@ -87,18 +97,18 @@
    :on-exit (fn [^JConsole jc state]
               (update-selected state nil))
    :name (str name "-menu")
-   :on-input (fn [k]
-               (let [sel (:selected @core/s)]
+   :on-input (fn [state k]
+               (let [sel (:selected @state)]
                  (case k 
-                   "num-8" (do (update-selected core/s 
-                                                (inc (mod (dec sel) 
-                                                          (count options))))
+                   "num-8" (do (update-selected state 
+                                                (mod (dec sel) 
+                                                     (count options)))
                                :handled)
-                   "num-2" (do (update-selected core/s
-                                                (inc (mod (inc sel)
-                                                          (count options))))
+                   "num-2" (do (update-selected state
+                                                (mod (inc sel)
+                                                     (count options)))
                                :handled)
-                   "enter" (do (select-fn options sel)
+                   "enter" (do (select-fn (options sel))
                                :handled))))})
 
 (defn new-title-screen []
@@ -106,14 +116,13 @@
                 (write-center jc 20 "Wolf's Den: Clojure Edition")
                 (write-center jc 21 "By Rakaneth"))
    :name "title"
-   :on-input (fn [k]
+   :on-input (fn [state k]
                (case k
-                 "enter" (do (push-screen 
-                              core/s (new-menu 50 20 
-                                               "new-game" 
-                                               "New Game"
-                                               #(println "Selected: " %)
-                                               ["New Game" "Continue"]))
-                             (core/redraw-screen @core/s)
+                 "enter" (do (push-screen state (new-menu 50 20 
+                                                          "new-game" 
+                                                          "New Game"
+                                                          #(println "Selected: " %)
+                                                          ["New Game" "Continue"]))
+                             (redraw-screen state)
                              :handled)
                  :else false))})

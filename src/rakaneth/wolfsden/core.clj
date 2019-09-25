@@ -24,15 +24,6 @@
      (.setCursorBlink jc false)
      jc)))
 
-
-(defn redraw-screen [state]
-  (let [^JConsole jc (:console state)
-        screens (:screen-stack state)]
-    (.setBackground jc (Color. 0 0 0))
-    (.clear jc)
-    (doseq [screen screens]
-      ((:on-render screen) jc state))))
-
 (defn new-state []
   (let [state {:game {}
                :console (new-console)
@@ -46,7 +37,7 @@
     (let [screens (:screen-stack @state)
           screen (last screens)
           handler-fn (:on-input screen)]
-      (if-not (and handler-fn (handler-fn k))
+      (if-not (and handler-fn (handler-fn state k))
         (println (str "Unhandled key " k " pressed."))))))
 
 (defn setup-input
@@ -91,11 +82,11 @@
     (.add (.getContentPane frame) jc)
     (.pack frame)
     (.setVisible frame true)
-    (redraw-screen st)
+    (scr/redraw-screen state)
     frame))
 
 (defn -main
   "Entry point for the app."
   [& args]
-  (let [^JFrame frame (main (new-state))]
+  (let [^JFrame frame (main (atom (new-state)))]
     (.setDefaultCloseOperation frame JFrame/EXIT_ON_CLOSE)))
