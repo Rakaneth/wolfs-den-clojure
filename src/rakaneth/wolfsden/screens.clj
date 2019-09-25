@@ -2,8 +2,11 @@
   (:require [mikera.orculje.gui :as gui])
   (:require [rakaneth.wolfsden.core :as core])
   (:require [rakaneth.wolfsden.utils :as utils])
-  (:import [mikera.gui JConsole]))
+  (:import [mikera.gui JConsole])
+  (:import [java.awt Color]))
 
+(def +screen-width+ 100)
+(def +screen-height+ 40)
 
 (defn draw-box [^JConsole jc x y w h]
   (let [horz (char 0x2550)
@@ -32,10 +35,9 @@
   (let [st @state
         cur-stack (:screen-stack st)
         enter-fn (:on-enter screen)
-        game (:game st)
         ^JConsole jc (:console st)]
     (if enter-fn
-      (enter-fn jc game))
+      (enter-fn jc state))
     (println (str "Entering " (:name screen) " screen."))
     (swap! state 
            (fn [cur-state] 
@@ -46,17 +48,22 @@
         cur-stack (:screen-stack st)
         leaving (last cur-stack)
         exit-fn (:on-exit leaving)
-        ^JConsole jc (:console st)
-        game (:game st)]
+        ^JConsole jc (:console st)]
     (if exit-fn
-      (exit-fn jc game))
+      (exit-fn jc state))
     (println (str "Exiting " (:name leaving) " screen."))
     (swap! state
            (fn [cur-state]
              (assoc cur-state :screen-stack (into [] (pop cur-stack)))))))
 
+(defn update-selected [state n]
+  (println state)
+  (swap! state
+         (fn [cur-state]
+           (assoc cur-state :selected n))))
+
 (defn write-center [^JConsole jc y text]
-  (gui/draw jc (quot (- core/+screen-width+ (count text)) 2) y text))
+  (gui/draw jc (quot (- +screen-width+ (count text)) 2) y text))
 
 (defn new-menu [x y name caption select-fn options]
   {:on-render (fn [^JConsole jc state]
@@ -70,9 +77,29 @@
                   (loop [row (inc y)
                          lst options]
                     (when-not (= row (+ y h))
+                      (if (= (:selected state) (- row y))
+                        (.setForeground jc (Color. 33 33 125))
+                        (.setForeground jc (Color. 255 255 255)))
                       (gui/draw jc (inc x) row (first lst))
                       (recur (inc row) (next lst))))))
-   :name (str name "-menu")})
+   :on-enter (fn [^JConsole jc state] 
+               (update-selected state 0))
+   :on-exit (fn [^JConsole jc state]
+              (update-selected state nil))
+   :name (str name "-menu")
+   :on-input (fn [k]
+               (let [sel (:selected @core/s)]
+                 (case k 
+                   "num-8" (do (update-selected core/s 
+                                                (inc (mod (dec sel) 
+                                                          (count options))))
+                               :handled)
+                   "num-2" (do (update-selected core/s
+                                                (inc (mod (inc sel)
+                                                          (count options))))
+                               :handled)
+                   "enter" (do (select-fn options sel)
+                               :handled))))})
 
 (defn new-title-screen []
   {:on-render (fn [^JConsole jc state]
@@ -81,10 +108,12 @@
    :name "title"
    :on-input (fn [k]
                (case k
-                 "enter" (do (push-screen core/s (new-menu 50 20 
-                                                           "new-game" 
-                                                           "New Game" 
-                                                           ["New Game" "Continue"]))
+                 "enter" (do (push-screen 
+                              core/s (new-menu 50 20 
+                                               "new-game" 
+                                               "New Game"
+                                               #(println "Selected: " %)
+                                               ["New Game" "Continue"]))
                              (core/redraw-screen @core/s)
                              :handled)
                  :else false))})

@@ -9,8 +9,6 @@
 
 
 (def ^Font font (Font. "Courier New" Font/PLAIN 16))
-(def +screen-width+ 100)
-(def +screen-height+ 40)
 
 (defn new-frame
   (^JFrame []
@@ -19,7 +17,7 @@
 
 (defn new-console
   (^JConsole []
-   (let [jc (JConsole.  +screen-width+ +screen-height+)]
+   (let [jc (JConsole.  scr/+screen-width+ scr/+screen-height+)]
      (.setMainFont jc font)
      (.setFocusable jc true)
      (.setCursorVisible jc false)
