@@ -1,6 +1,6 @@
 (ns rakaneth.wolfsden-test
   (:require [clojure.test :refer :all]
-            [rakaneth.wolfsden :refer :all]))
+            [rakaneth.wolfsden.core :refer :all]))
 
 (deftest a-test
   (testing "FIXME, I fail."
