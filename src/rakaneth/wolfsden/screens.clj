@@ -66,7 +66,7 @@
       ((:on-render screen) jc st))))
 
 (defn update-selected [state n]
-  (println state)
+  ;; (println state)
   (swap! state
          (fn [cur-state]
            (assoc cur-state :selected n)))
@@ -109,7 +109,8 @@
                                                      (count options)))
                                :handled)
                    "enter" (do (select-fn (options sel))
-                               :handled))))})
+                               :handled)
+                   false)))})
 
 (defn new-title-screen []
   {:on-render (fn [^JConsole jc state]
@@ -125,4 +126,4 @@
                                                           ["New Game" "Continue"]))
                              (redraw-screen state)
                              :handled)
-                 :else false))})
+                 false))})

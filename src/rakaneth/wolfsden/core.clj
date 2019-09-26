@@ -54,6 +54,7 @@
                             KeyEvent/VK_NUMPAD3 "num-3"
                             KeyEvent/VK_NUMPAD2 "num-2"
                             KeyEvent/VK_NUMPAD1 "num-1"
+                            KeyEvent/VK_NUMPAD5 "num-5"
                             KeyEvent/VK_1 "1"
                             KeyEvent/VK_2 "2"
                             KeyEvent/VK_3 "3"
